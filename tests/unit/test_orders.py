@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.modules.orders import service, repository, models
+from app.modules.orders.exceptions import OrderOwnershipError
 from app.modules.orders.service import OrderStateMachine, InvalidOrderTransition
 
 
@@ -104,6 +105,19 @@ def test_delete_order_not_found():
         assert False, "Should have raised ValueError"
     except ValueError as e:
         assert str(e) == "Order not found"
+
+
+def test_cancel_order_rejects_delivered_order():
+    order = _make_order(status=models.OrderStatus.DELIVERED)
+    repo = _make_mock_repo(order=order)
+    db = _make_db()
+
+    with pytest.raises(OrderOwnershipError):
+        service.cancel_order(db, repo, 1)
+
+    assert order.status == models.OrderStatus.DELIVERED
+    db.commit.assert_not_called()
+    db.refresh.assert_not_called()
 
 
 # ── FSM Unit Tests ──────────────────────────────────────────────────────────

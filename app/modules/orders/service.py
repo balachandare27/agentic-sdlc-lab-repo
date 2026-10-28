@@ -100,6 +100,8 @@ def cancel_order(db: Session, repo: repository.OrderRepository, order_id: int):
 
     if order.status == models.OrderStatus.CANCELLED:
         raise OrderOwnershipError("Order is already cancelled")
+    if order.status == models.OrderStatus.DELIVERED:
+        raise OrderOwnershipError("Delivered orders cannot be cancelled")
 
     order.status = models.OrderStatus.CANCELLED
     try:
